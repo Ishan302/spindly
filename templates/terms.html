@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Terms and Conditions — Spendly{% endblock %}
+
+{% block content %}
+
+<section class="legal-section">
+    <div class="legal-container">
+
+        <div class="legal-header">
+            <div class="hero-badge">Legal</div>
+            <h1 class="legal-title">Terms and <em>Conditions</em></h1>
+            <p class="legal-updated">Last updated: November 2026</p>
+        </div>
+
+        <div class="legal-card">
+            <div class="legal-block">
+                <h2 class="legal-heading"><span class="legal-num">01</span>Acceptance of Terms</h2>
+                <p class="legal-body">By creating an account or using Spendly, you agree to be bound by these Terms and Conditions. If you do not agree, please do not use the service.</p>
+            </div>
+
+            <div class="legal-block">
+                <h2 class="legal-heading"><span class="legal-num">02</span>Use of Service</h2>
+                <p class="legal-body">Spendly is a personal expense tracking tool. You agree to use it only for lawful purposes and to provide accurate information. You are responsible for keeping your account credentials secure and for all activity that occurs under your account. You must not attempt to disrupt the service or access data that belongs to other users.</p>
+            </div>
+
+            <div class="legal-block">
+                <h2 class="legal-heading"><span class="legal-num">03</span>User Data</h2>
+                <p class="legal-body">You retain ownership of the expense data you enter into Spendly. We store this data only to provide the service to you and do not sell it to third parties. You may delete your data or account at any time. While we take reasonable steps to protect your information, no system is completely secure.</p>
+            </div>
+
+            <div class="legal-block">
+                <h2 class="legal-heading"><span class="legal-num">04</span>Limitations of Liability</h2>
+                <p class="legal-body">Spendly is provided "as is" without warranties of any kind. It is a tracking aid and does not provide financial, tax, or legal advice. To the fullest extent permitted by law, Spendly and its creators are not liable for any loss or damages arising from your use of, or inability to use, the service, including loss of data.</p>
+            </div>
+
+            <div class="legal-block">
+                <h2 class="legal-heading"><span class="legal-num">05</span>Changes to Terms</h2>
+                <p class="legal-body">We may update these Terms from time to time. When we do, we will revise the "Last updated" date above. Continued use of Spendly after changes take effect means you accept the revised Terms.</p>
+            </div>
+        </div>
+
+        <div class="legal-back">
+            <a href="{{ url_for('landing') }}" class="btn-ghost">← Back to home</a>
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}

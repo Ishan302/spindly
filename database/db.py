@@ -51,6 +51,33 @@ def init_db():
         conn.close()
 
 
+def get_user_by_email(email):
+    conn = get_db()
+    try:
+        return conn.execute(
+            "SELECT * FROM users WHERE email = ?", (email.strip().lower(),)
+        ).fetchone()
+    finally:
+        conn.close()
+
+
+def create_user(name, email, password):
+    conn = get_db()
+    try:
+        with conn:
+            cursor = conn.execute(
+                "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
+                (
+                    name,
+                    email,
+                    generate_password_hash(password, method="pbkdf2:sha256"),
+                ),
+            )
+        return cursor.lastrowid
+    finally:
+        conn.close()
+
+
 def seed_db():
     conn = get_db()
     try:

@@ -102,7 +102,6 @@ def test_integrity_error_race_handled(client, get_rows, monkeypatch):
 
 def test_other_stub_routes_unchanged(client):
     assert b"coming in Step 4" in client.get("/profile").data
-    assert b"coming in Step 3" in client.get("/logout").data
 
 
 def test_password_mismatch_rejected(client, get_rows):

@@ -65,7 +65,7 @@ def test_logged_in_get_login_redirects(client, demo_user):
     post_login(client)
     response = client.get("/login")
     assert response.status_code == 302
-    assert response.headers["Location"].endswith("/")
+    assert response.headers["Location"].endswith("/profile")
 
 
 # --- POST /login -------------------------------------------------------
@@ -74,17 +74,17 @@ def test_logged_in_get_login_redirects(client, demo_user):
 def test_login_success(client, demo_user):
     response = post_login(client)
     assert response.status_code == 302
-    assert response.headers["Location"].endswith("/")
+    assert response.headers["Location"].endswith("/profile")
     assert session_user_id(client) == demo_user
     assert any(
         h.startswith("session=") for h in response.headers.getlist("Set-Cookie")
     )
 
 
-def test_session_holds_only_user_id(client, demo_user):
+def test_session_holds_only_id_and_name(client, demo_user):
     post_login(client)
     with client.session_transaction() as sess:
-        assert set(sess.keys()) == {"user_id"}
+        assert set(sess.keys()) == {"user_id", "user_name"}
 
 
 def test_register_then_login(client):
@@ -191,7 +191,6 @@ def test_logout_while_logged_out(client):
 @pytest.mark.parametrize(
     "path,text",
     [
-        ("/profile", b"Step 4"),
         ("/expenses/add", b"Step 7"),
         ("/expenses/1/edit", b"Step 8"),
         ("/expenses/1/delete", b"Step 9"),
@@ -210,7 +209,7 @@ def test_logged_in_get_register_redirects(client, demo_user):
     post_login(client)
     response = client.get("/register")
     assert response.status_code == 302
-    assert response.headers["Location"].endswith("/")
+    assert response.headers["Location"].endswith("/profile")
 
 
 def test_logged_in_post_register_creates_no_user(client, demo_user, get_rows):

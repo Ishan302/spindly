@@ -1,12 +1,17 @@
 import os
 import sqlite3
+from datetime import datetime
 
 from flask import Flask, redirect, render_template, request, session, url_for
 
 from database.db import (
     create_user,
+    get_category_breakdown,
     get_db,
+    get_recent_transactions,
+    get_summary_stats,
     get_user_by_email,
+    get_user_by_id,
     init_db,
     seed_db,
     verify_user,
@@ -124,53 +129,86 @@ def privacy():
 # Placeholder routes — students will implement these                  #
 # ------------------------------------------------------------------ #
 
+# ------------------------------------------------------------------ #
+# Profile helpers — shared                                            #
+# ------------------------------------------------------------------ #
+
+def format_inr(amount):
+    return f"₹{amount:,.2f}"
+
+
+def format_date(iso_date):
+    return datetime.strptime(iso_date, "%Y-%m-%d").strftime("%d %b %Y")
+
+
+def make_initials(name):
+    parts = name.split()
+    return "".join(p[0] for p in parts[:2]).upper() or "?"
+
+
+# ==== SECTION 1: transaction history (subagent 1 only) ============== #
+
+def build_transactions(user_id):
+    return [
+        {
+            "date": format_date(t["date"]),
+            "description": t["description"],
+            "category": t["category"],
+            "amount": format_inr(t["amount"]),
+        }
+        for t in get_recent_transactions(user_id)
+    ]
+
+
+# ==== SECTION 2: summary stats (subagent 2 only) ==================== #
+
+def build_stats(user_id):
+    stats = get_summary_stats(user_id)
+    return {
+        "total_spent": format_inr(stats["total_spent"]),
+        "transaction_count": stats["transaction_count"],
+        "top_category": stats["top_category"],
+    }
+
+
+# ==== SECTION 3: category breakdown (subagent 3 only) =============== #
+
+def build_categories(user_id):
+    return [
+        {
+            "name": item["name"],
+            "total": format_inr(item["amount"]),
+            "percent": item["pct"],
+        }
+        for item in get_category_breakdown(user_id)
+    ]
+
+
+# ==== END SECTIONS ================================================== #
+
 @app.route("/profile")
 def profile():
-    if not session.get("user_id"):
+    user_id = session.get("user_id")
+    if not user_id:
         return redirect(url_for("login"))
 
-    # Hardcoded placeholder data — real queries arrive in Step 5.
+    user_row = get_user_by_id(user_id)
+    if user_row is None:
+        session.clear()
+        return redirect(url_for("login"))
+
     user = {
-        "name": "Priya Sharma",
-        "email": "priya.sharma@example.com",
-        "initials": "PS",
-        "member_since": "March 2025",
+        "name": user_row["name"],
+        "email": user_row["email"],
+        "initials": make_initials(user_row["name"]),
+        "member_since": user_row["member_since"],
     }
-    stats = {
-        "total_spent": "₹12,480.00",
-        "transaction_count": 7,
-        "top_category": "Bills",
-    }
-    transactions = [
-        {"date": "05 Nov 2026", "description": "Electricity bill",
-         "category": "Bills", "amount": "₹3,200.00"},
-        {"date": "03 Nov 2026", "description": "Weekly groceries",
-         "category": "Food", "amount": "₹1,850.00"},
-        {"date": "01 Nov 2026", "description": "Metro card recharge",
-         "category": "Transport", "amount": "₹500.00"},
-        {"date": "29 Oct 2026", "description": "Pharmacy",
-         "category": "Health", "amount": "₹780.00"},
-        {"date": "27 Oct 2026", "description": "Movie night",
-         "category": "Entertainment", "amount": "₹650.00"},
-        {"date": "24 Oct 2026", "description": "Running shoes",
-         "category": "Shopping", "amount": "₹4,200.00"},
-        {"date": "20 Oct 2026", "description": "Internet bill",
-         "category": "Bills", "amount": "₹1,300.00"},
-    ]
-    categories = [
-        {"name": "Bills", "total": "₹4,500.00", "percent": 36},
-        {"name": "Shopping", "total": "₹4,200.00", "percent": 34},
-        {"name": "Food", "total": "₹1,850.00", "percent": 15},
-        {"name": "Health", "total": "₹780.00", "percent": 6},
-        {"name": "Entertainment", "total": "₹650.00", "percent": 5},
-        {"name": "Transport", "total": "₹500.00", "percent": 4},
-    ]
     return render_template(
         "profile.html",
         user=user,
-        stats=stats,
-        transactions=transactions,
-        categories=categories,
+        stats=build_stats(user_id),
+        transactions=build_transactions(user_id),
+        categories=build_categories(user_id),
     )
 
 

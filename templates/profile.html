@@ -12,7 +12,7 @@
 
         <header class="profile-header">
             <h1 class="profile-title">Your <em>profile</em></h1>
-            <p class="profile-subtitle">Sample data shown while we build the rest of Spendly.</p>
+            <p class="profile-subtitle">Your spending at a glance.</p>
         </header>
 
         <div class="profile-card profile-user">
@@ -41,6 +41,9 @@
 
         <div class="profile-card">
             <h2 class="profile-section-title">Recent transactions</h2>
+            {% if not transactions %}
+            <p class="profile-meta">No transactions yet.</p>
+            {% else %}
             <div class="profile-table-wrap">
                 <table class="profile-table">
                     <thead>
@@ -63,10 +66,14 @@
                     </tbody>
                 </table>
             </div>
+            {% endif %}
         </div>
 
         <div class="profile-card">
             <h2 class="profile-section-title">Spending by category</h2>
+            {% if not categories %}
+            <p class="profile-meta">No spending to break down yet.</p>
+            {% endif %}
             <ul class="profile-breakdown">
                 {% for c in categories %}
                 <li class="profile-bar-row">

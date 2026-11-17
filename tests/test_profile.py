@@ -11,8 +11,12 @@ TEMPLATE = Path(__file__).resolve().parent.parent / "templates" / "profile.html"
 
 
 @pytest.fixture
-def logged_in(client, app):
-    db.create_user("Demo User", EMAIL, PASSWORD)
+def logged_in(client, app, add_expense):
+    user_id = db.create_user("Demo User", EMAIL, PASSWORD)
+    add_expense(user_id, 3200.00, "Bills", "2026-11-05", "Electricity bill")
+    add_expense(user_id, 1850.50, "Food", "2026-11-03", "Groceries")
+    add_expense(user_id, 500.00, "Transport", "2026-11-01", "Metro card")
+    add_expense(user_id, 780.00, "Health", "2026-10-29", "Pharmacy")
     client.post("/login", data={"email": EMAIL, "password": PASSWORD})
     return client
 
@@ -29,9 +33,10 @@ def test_profile_ok_when_logged_in(logged_in):
 
 def test_profile_shows_user_card(logged_in):
     data = logged_in.get("/profile").data
-    assert b"Priya Sharma" in data
-    assert b"priya.sharma@example.com" in data
+    assert b"Demo User" in data
+    assert EMAIL.encode() in data
     assert b"Member since" in data
+    assert b"Priya Sharma" not in data
 
 
 def test_profile_shows_stats(logged_in):
@@ -44,12 +49,12 @@ def test_profile_shows_stats(logged_in):
 def test_profile_table_has_rows(logged_in):
     html = logged_in.get("/profile").data.decode()
     body = html.split("<tbody>")[1].split("</tbody>")[0]
-    assert body.count("<tr>") >= 3
+    assert body.count("<tr>") == 4
 
 
 def test_profile_breakdown_has_categories(logged_in):
     data = logged_in.get("/profile").data
-    assert data.count(b'class="profile-bar-row"') >= 3
+    assert data.count(b'class="profile-bar-row"') == 4
 
 
 def test_profile_badges_use_css_class(logged_in):

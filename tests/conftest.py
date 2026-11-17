@@ -1,3 +1,4 @@
+import os
 import sqlite3
 
 import pytest
@@ -11,6 +12,10 @@ def app(tmp_path, monkeypatch):
     db.init_db()
 
     from app import app as flask_app
+
+    # Importing app seeds the DB on first import; start every test from empty.
+    os.remove(db.DB_PATH)
+    db.init_db()
 
     flask_app.config["TESTING"] = True
     return flask_app
@@ -32,3 +37,20 @@ def get_rows(app):
             conn.close()
 
     return _get_rows
+
+
+@pytest.fixture
+def add_expense(app):
+    def _add_expense(user_id, amount, category, date, description=""):
+        conn = db.get_db()
+        try:
+            with conn:
+                conn.execute(
+                    "INSERT INTO expenses (user_id, amount, category, date, description) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (user_id, amount, category, date, description),
+                )
+        finally:
+            conn.close()
+
+    return _add_expense

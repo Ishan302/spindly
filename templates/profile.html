@@ -24,6 +24,30 @@
             </div>
         </div>
 
+        <div class="profile-card">
+            {% if date_filter.error %}
+            <p class="auth-error" role="alert">{{ date_filter.error }}</p>
+            {% endif %}
+            <div class="profile-filter-bar">
+                <nav class="profile-presets" aria-label="Quick date ranges">
+                    {% for p in date_filter.presets %}
+                    <a class="profile-preset{% if p.active %} profile-preset--active{% endif %}" href="{{ url_for('profile', start=p.start, end=p.end) }}"{% if p.active %} aria-current="page"{% endif %}>{{ p.label }}</a>
+                    {% endfor %}
+                </nav>
+                <form class="profile-filter" method="get" action="{{ url_for('profile') }}" aria-label="Custom date range">
+                    <label class="profile-filter-label" for="filter-start">From</label>
+                    <input class="profile-filter-input" type="date" id="filter-start" name="start" value="{{ date_filter.start }}">
+                    <label class="profile-filter-label" for="filter-end">To</label>
+                    <input class="profile-filter-input" type="date" id="filter-end" name="end" value="{{ date_filter.end }}">
+                    <button type="submit" class="profile-btn">Apply</button>
+                    <a class="profile-filter-clear" href="{{ url_for('profile') }}">Clear</a>
+                </form>
+            </div>
+            {% if date_filter.active %}
+            <p class="profile-filter-active">Showing {{ date_filter.label }}</p>
+            {% endif %}
+        </div>
+
         <div class="profile-stats">
             <div class="profile-stat">
                 <span class="profile-stat-label">Total spent</span>
@@ -39,51 +63,53 @@
             </div>
         </div>
 
-        <div class="profile-card">
-            <h2 class="profile-section-title">Recent transactions</h2>
-            {% if not transactions %}
-            <p class="profile-meta">No transactions yet.</p>
-            {% else %}
-            <div class="profile-table-wrap">
-                <table class="profile-table">
-                    <thead>
-                        <tr>
-                            <th scope="col">Date</th>
-                            <th scope="col">Description</th>
-                            <th scope="col">Category</th>
-                            <th scope="col" class="profile-amount">Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for t in transactions %}
-                        <tr>
-                            <td>{{ t.date }}</td>
-                            <td>{{ t.description }}</td>
-                            <td><span class="cat-badge cat-badge--{{ t.category|lower }}">{{ t.category }}</span></td>
-                            <td class="profile-amount">{{ t.amount }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        <div class="profile-panels">
+            <div class="profile-card">
+                <h2 class="profile-section-title">Recent transactions</h2>
+                {% if not transactions %}
+                <p class="profile-meta">{{ "No transactions in this date range." if date_filter.active else "No transactions yet." }}</p>
+                {% else %}
+                <div class="profile-table-wrap">
+                    <table class="profile-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Date</th>
+                                <th scope="col">Description</th>
+                                <th scope="col">Category</th>
+                                <th scope="col" class="profile-amount">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in transactions %}
+                            <tr>
+                                <td>{{ t.date }}</td>
+                                <td>{{ t.description }}</td>
+                                <td><span class="cat-badge cat-badge--{{ t.category|lower }}">{{ t.category }}</span></td>
+                                <td class="profile-amount">{{ t.amount }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
-        </div>
 
-        <div class="profile-card">
-            <h2 class="profile-section-title">Spending by category</h2>
-            {% if not categories %}
-            <p class="profile-meta">No spending to break down yet.</p>
-            {% endif %}
-            <ul class="profile-breakdown">
-                {% for c in categories %}
-                <li class="profile-bar-row">
-                    <span class="profile-bar-name">{{ c.name }}</span>
-                    <progress class="profile-bar profile-bar--{{ c.name|lower }}" value="{{ c.percent }}" max="100">{{ c.percent }}%</progress>
-                    <span class="profile-bar-total">{{ c.total }}</span>
-                    <span class="profile-bar-percent">{{ c.percent }}%</span>
-                </li>
-                {% endfor %}
-            </ul>
+            <div class="profile-card">
+                <h2 class="profile-section-title">Spending by category</h2>
+                {% if not categories %}
+                <p class="profile-meta">{{ "No spending in this date range." if date_filter.active else "No spending to break down yet." }}</p>
+                {% endif %}
+                <ul class="profile-breakdown">
+                    {% for c in categories %}
+                    <li class="profile-bar-row">
+                        <span class="profile-bar-name">{{ c.name }}</span>
+                        <progress class="profile-bar profile-bar--{{ c.name|lower }}" value="{{ c.percent }}" max="100">{{ c.percent }}%</progress>
+                        <span class="profile-bar-total">{{ c.total }}</span>
+                        <span class="profile-bar-percent">{{ c.percent }}%</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
         </div>
 
     </div>

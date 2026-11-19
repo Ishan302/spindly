@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-Spendly is a lightweight personal expense tracker built with Flask and SQLite. It is a step-by-step teaching project: the landing, auth and legal pages are real, and most of the backend is still stubbed.
+Spendly is a lightweight personal expense tracker built with Flask and SQLite. It is a step-by-step teaching project: the landing, legal, auth and profile pages are real, and the expense CRUD routes are still stubbed.
 
 ---
 
@@ -19,7 +19,7 @@ pip install -r requirements.txt
 # Run dev server (debug mode, http://localhost:5001)
 python app.py
 
-# Tests (pytest + pytest-flask are installed; no tests exist yet)
+# Tests (pytest + pytest-flask; tests/ uses an isolated temp DB via conftest.py)
 pytest                             # all tests
 pytest tests/test_foo.py           # one file
 pytest tests/test_foo.py::test_name  # one test
@@ -50,10 +50,7 @@ spendly/
 ```
 
 - `app.py` — single Flask app with all routes.
-- `database/db.py` — currently a comment-only stub, and nothing calls it yet. It is intended to hold:
-  - `get_db()`: SQLite connection with `row_factory` set and foreign keys on.
-  - `init_db()`: `CREATE TABLE IF NOT EXISTS ...`.
-  - `seed_db()`: sample data.
+- `database/db.py` — all SQLite logic: `get_db()` (row_factory, foreign keys on), `init_db()`, `seed_db()`, user helpers (`get_user_by_email`, `create_user`, `verify_user`, `get_user_by_id`) and profile queries (`get_recent_transactions`, `get_summary_stats`, `get_category_breakdown`).
 - `templates/base.html` provides the navbar, footer, fonts, `css/style.css` and `js/main.js`, with `title` and `head` blocks. Page templates extend it.
 - `landing.html` has its own inline `<script>` (e.g. the "See how it works" YouTube modal). This is existing code; don't add more inline scripts or styles elsewhere.
 
@@ -71,12 +68,12 @@ spendly/
 | Route | Status |
 |---|---|
 | `GET /` | Implemented — renders `landing.html` |
-| `GET /register` | Implemented — renders `register.html` |
-| `GET /login` | Implemented — renders `login.html` |
 | `GET /terms` | Implemented — renders `terms.html` |
 | `GET /privacy` | Implemented — renders `privacy.html` |
-| `GET /logout` | Stub — Step 3 |
-| `GET /profile` | Stub — Step 4 |
+| `GET, POST /register` | Implemented |
+| `GET, POST /login` | Implemented |
+| `GET /logout` | Implemented |
+| `GET /profile` | Implemented — dynamic data from `db.py` |
 | `GET /expenses/add` | Stub — Step 7 |
 | `GET /expenses/<id>/edit` | Stub — Step 8 |
 | `GET /expenses/<id>/delete` | Stub — Step 9 |
@@ -117,7 +114,7 @@ Commit messages use `area: lowercase description`, e.g. `landing: add terms and 
 ## Subagent policy
 
 - Always use a builtin explore subagent for codebase exploration before implementing any new feature
-- Always use a subagent to verify test results after any implementation
+- After implementing a feature, run `test-writer` (writes tests from the spec in `.claude/specs/`), then `test-runner` (runs and analyzes them, read-only)
 - When asked to plan, delegate codebase research to a subagent before presenting the plan
 - Always use a builtin plan subagent in plan mode
 
@@ -129,7 +126,7 @@ Commit messages use `area: lowercase description`, e.g. `landing: add terms and 
 - **Never put DB logic in route functions** — it belongs in `database/db.py`
 - **Never install new packages** mid-feature without flagging it — keep `requirements.txt` in sync
 - **Never use JS frameworks** — the frontend is intentionally vanilla
-- **`database/db.py` is currently empty** — do not assume helpers exist until the step that implements them
+- **Check `database/db.py` before assuming a helper exists** — only the helpers listed above are implemented
 - **FK enforcement is manual** — SQLite foreign keys are off by default; `get_db()` must run `PRAGMA foreign_keys = ON` on every connection
 - **The app runs on port 5001**, not the Flask default 5000 — don't change this
 - **`file.txt` is a scratch log of past prompts**, not project documentation — don't treat it as a source of requirements

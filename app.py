@@ -1,6 +1,7 @@
+import calendar
 import os
 import sqlite3
-from datetime import datetime
+from datetime import date, datetime
 
 from flask import Flask, redirect, render_template, request, session, url_for
 
@@ -148,7 +149,7 @@ def make_initials(name):
 
 # ==== SECTION 1: transaction history (subagent 1 only) ============== #
 
-def build_transactions(user_id):
+def build_transactions(user_id, start_date=None, end_date=None):
     return [
         {
             "date": format_date(t["date"]),
@@ -156,14 +157,16 @@ def build_transactions(user_id):
             "category": t["category"],
             "amount": format_inr(t["amount"]),
         }
-        for t in get_recent_transactions(user_id)
+        for t in get_recent_transactions(
+            user_id, start_date=start_date, end_date=end_date
+        )
     ]
 
 
 # ==== SECTION 2: summary stats (subagent 2 only) ==================== #
 
-def build_stats(user_id):
-    stats = get_summary_stats(user_id)
+def build_stats(user_id, start_date=None, end_date=None):
+    stats = get_summary_stats(user_id, start_date=start_date, end_date=end_date)
     return {
         "total_spent": format_inr(stats["total_spent"]),
         "transaction_count": stats["transaction_count"],
@@ -173,18 +176,96 @@ def build_stats(user_id):
 
 # ==== SECTION 3: category breakdown (subagent 3 only) =============== #
 
-def build_categories(user_id):
+def build_categories(user_id, start_date=None, end_date=None):
     return [
         {
             "name": item["name"],
             "total": format_inr(item["amount"]),
             "percent": item["pct"],
         }
-        for item in get_category_breakdown(user_id)
+        for item in get_category_breakdown(
+            user_id, start_date=start_date, end_date=end_date
+        )
     ]
 
 
 # ==== END SECTIONS ================================================== #
+
+# ==== Date filter helpers =========================================== #
+
+def parse_date_param(raw):
+    """Return (iso_date_or_None, is_invalid). Blank or missing is not invalid."""
+    raw = (raw or "").strip()
+    if not raw:
+        return None, False
+    try:
+        return datetime.strptime(raw, "%Y-%m-%d").date().isoformat(), False
+    except ValueError:
+        return None, True
+
+
+def resolve_date_filter(args):
+    """Return (start, end, error_message_or_None) from request query args."""
+    start, start_invalid = parse_date_param(args.get("start"))
+    end, end_invalid = parse_date_param(args.get("end"))
+
+    if start_invalid or end_invalid:
+        return start, end, "Enter dates as YYYY-MM-DD. The invalid date was ignored."
+    if start and end and start > end:
+        return None, None, "Start date must be on or before the end date."
+    return start, end, None
+
+
+def shift_months(day, months):
+    """Return `day` moved back by `months`, clamping to the month's last day."""
+    index = day.year * 12 + (day.month - 1) - months
+    year, month = index // 12, index % 12 + 1
+    last_day = calendar.monthrange(year, month)[1]
+    return date(year, month, min(day.day, last_day))
+
+
+def build_date_presets(start, end):
+    """Quick-range tabs ending today; `active` marks the one matching the filter."""
+    today = date.today()
+    ranges = [
+        ("This month", today.replace(day=1)),
+        ("3 months", shift_months(today, 3)),
+        ("6 months", shift_months(today, 6)),
+    ]
+    return [
+        {
+            "label": label,
+            "start": first.isoformat(),
+            "end": today.isoformat(),
+            "active": start == first.isoformat() and end == today.isoformat(),
+        }
+        for label, first in ranges
+    ]
+
+
+def describe_date_filter(start, end):
+    """Return a human-readable label for the active range, or "" if none."""
+    if start and end:
+        return f"{format_date(start)} – {format_date(end)}"
+    if start:
+        return f"from {format_date(start)}"
+    if end:
+        return f"up to {format_date(end)}"
+    return ""
+
+
+def build_date_filter(args):
+    """Bundle everything the template needs to render the date filter."""
+    start, end, error = resolve_date_filter(args)
+    return {
+        "start": start or "",
+        "end": end or "",
+        "active": bool(start or end),
+        "label": describe_date_filter(start, end),
+        "error": error,
+        "presets": build_date_presets(start, end),
+    }
+
 
 @app.route("/profile")
 def profile():
@@ -203,12 +284,15 @@ def profile():
         "initials": make_initials(user_row["name"]),
         "member_since": user_row["member_since"],
     }
+    date_filter = build_date_filter(request.args)
+    start, end = date_filter["start"] or None, date_filter["end"] or None
     return render_template(
         "profile.html",
         user=user,
-        stats=build_stats(user_id),
-        transactions=build_transactions(user_id),
-        categories=build_categories(user_id),
+        stats=build_stats(user_id, start, end),
+        transactions=build_transactions(user_id, start, end),
+        categories=build_categories(user_id, start, end),
+        date_filter=date_filter,
     )
 
 
